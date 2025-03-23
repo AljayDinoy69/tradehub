@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 
@@ -9,6 +8,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateAvatar: (newAvatarUrl: string) => void;
+  updateProfile: (name: string, avatar: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,8 +127,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tradehub-user');
   };
 
+  const updateAvatar = (newAvatarUrl: string) => {
+    if (!user) return;
+    
+    // Update current user
+    const updatedUser = { ...user, avatar: newAvatarUrl };
+    setUser(updatedUser);
+    localStorage.setItem('tradehub-user', JSON.stringify(updatedUser));
+    
+    // Update in mock users array
+    const updatedMockUsers = mockUsers.map(mockUser => 
+      mockUser.id === user.id ? { ...mockUser, avatar: newAvatarUrl } : mockUser
+    );
+    setMockUsers(updatedMockUsers);
+    localStorage.setItem('tradehub-users', JSON.stringify(updatedMockUsers));
+  };
+
+  const updateProfile = (name: string, avatar: string) => {
+    if (!user) return;
+    
+    // Update current user
+    const updatedUser = { ...user, name, avatar };
+    setUser(updatedUser);
+    localStorage.setItem('tradehub-user', JSON.stringify(updatedUser));
+    
+    // Update in mock users array
+    const updatedMockUsers = mockUsers.map(mockUser => 
+      mockUser.id === user.id ? { ...mockUser, name, avatar } : mockUser
+    );
+    setMockUsers(updatedMockUsers);
+    localStorage.setItem('tradehub-users', JSON.stringify(updatedMockUsers));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, login, logout, register }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      isAdmin, 
+      login, 
+      logout, 
+      register, 
+      updateAvatar,
+      updateProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );

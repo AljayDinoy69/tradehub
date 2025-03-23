@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -7,15 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
+import { Camera, Pencil, UserCircle, Upload } from 'lucide-react';
+
+const avatarOptions = [
+  { color: '0EA5E9', label: 'Blue' },
+  { color: '22C55E', label: 'Green' },
+  { color: 'EF4444', label: 'Red' },
+  { color: 'F59E0B', label: 'Orange' },
+  { color: '8B5CF6', label: 'Purple' },
+  { color: 'EC4899', label: 'Pink' },
+];
 
 const SettingsPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
   
   // Form state
-  const [name, setName] = React.useState(user?.name || '');
-  const [avatar, setAvatar] = React.useState(user?.avatar || '');
+  const [name, setName] = useState(user?.name || '');
+  const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [showAvatarOptions, setShowAvatarOptions] = useState(false);
   
   // Redirect if not authenticated
   React.useEffect(() => {
@@ -26,11 +39,24 @@ const SettingsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would send this to the server
+    
+    // Update user profile
+    updateProfile(name, avatar);
+    
     toast({
       title: "Settings updated",
       description: "Your profile settings have been updated successfully.",
     });
+  };
+
+  const generateAvatar = (name: string, color: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${color}&color=fff`;
+  };
+
+  const handleAvatarChange = (color: string) => {
+    const newAvatar = generateAvatar(name.replace(' ', '+'), color);
+    setAvatar(newAvatar);
+    setShowAvatarOptions(false);
   };
 
   if (!user) return null;
@@ -50,48 +76,89 @@ const SettingsPage = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={avatar} alt={name} />
-                    <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Button type="button" variant="outline" size="sm" className="mb-2">
+                <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+                  <div className="relative">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={avatar} alt={name} />
+                      <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      className="absolute -bottom-2 -right-2 h-6 w-6 rounded-full"
+                      onClick={() => setShowAvatarOptions(!showAvatarOptions)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2"
+                      onClick={() => setShowAvatarOptions(!showAvatarOptions)}
+                    >
+                      <UserCircle className="h-4 w-4" />
                       Change Avatar
                     </Button>
                     <p className="text-xs text-gray-500">
-                      JPG, PNG or GIF. 1MB max size.
+                      Choose from our predefined avatars
                     </p>
                   </div>
                 </div>
                 
+                {showAvatarOptions && (
+                  <div className="p-4 bg-gray-50 rounded-md">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                      {avatarOptions.map((option) => (
+                        <button
+                          key={option.color}
+                          type="button"
+                          className="p-1 rounded-md hover:bg-gray-200 transition-colors"
+                          onClick={() => handleAvatarChange(option.color)}
+                        >
+                          <div className="flex flex-col items-center">
+                            <Avatar className="h-12 w-12 mb-1">
+                              <AvatarImage 
+                                src={generateAvatar(name.replace(' ', '+'), option.color)} 
+                                alt={option.label} 
+                              />
+                              <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs">{option.label}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
                       id="name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full p-2 border rounded-md"
+                      className="w-full"
                       required
                     />
                   </div>
                   
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
                       id="email"
                       type="email"
                       value={user.email}
-                      className="w-full p-2 border rounded-md bg-gray-50"
+                      className="w-full bg-gray-50"
                       disabled
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500">
                       Email address cannot be changed
                     </p>
                   </div>
