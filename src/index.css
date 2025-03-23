@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,20 +36,17 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* TradeHub Colors */
+    --tradehub-primary: 199 89% 48%;
+    --tradehub-secondary: 210 20% 96%;
   }
 
   .dark {
@@ -87,6 +85,10 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* TradeHub Colors - Dark mode */
+    --tradehub-primary: 199 89% 48%;
+    --tradehub-secondary: 217.2 32.6% 17.5%;
   }
 }
 
@@ -97,5 +99,16 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles */
+@layer components {
+  .tradehub-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .tradehub-gradient {
+    background: linear-gradient(to right, hsl(199, 89%, 48%), hsl(204, 89%, 53%));
   }
 }
