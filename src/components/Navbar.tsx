@@ -11,7 +11,18 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Home, Package, PlusCircle, User, LogOut, LogIn, Settings, UserCircle } from 'lucide-react';
+import { 
+  Home, 
+  Package, 
+  PlusCircle, 
+  User, 
+  LogOut, 
+  LogIn, 
+  Settings, 
+  UserCircle,
+  LayoutDashboard,
+  MessageSquare
+} from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -79,13 +90,25 @@ const Navbar: React.FC = () => {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center">
+                  <Link to="/dashboard" className="flex items-center cursor-pointer">
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    <span>Dashboard</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center cursor-pointer">
                     <UserCircle className="w-4 h-4 mr-2" />
                     <span>Profile</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="flex items-center">
+                  <Link to="/messages" className="flex items-center cursor-pointer">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    <span>Messages</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="flex items-center cursor-pointer">
                     <Settings className="w-4 h-4 mr-2" />
                     <span>Settings</span>
                   </Link>
