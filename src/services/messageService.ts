@@ -1,87 +1,67 @@
 
 import { Message } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
-// Mock messages
-let mockMessages: Message[] = [
-  {
-    id: 'm1',
-    senderId: '1',
-    receiverId: '2',
-    content: 'Hey, I\'m interested in your Vintage Camera. Is it still available?',
-    createdAt: '2023-11-16T14:30:00Z',
-    read: true
-  },
-  {
-    id: 'm2',
-    senderId: '2',
-    receiverId: '1',
-    content: 'Yes, it\'s still available! Do you have any questions about it?',
-    createdAt: '2023-11-16T14:45:00Z',
-    read: true
-  },
-  {
-    id: 'm3',
-    senderId: '1',
-    receiverId: '2',
-    content: 'Great! What\'s the condition of the lens?',
-    createdAt: '2023-11-16T15:00:00Z',
-    read: false
-  }
-];
-
-// Get conversation between two users
-export const getConversation = (userId1: string, userId2: string): Promise<Message[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const conversation = mockMessages.filter(
-        m => (m.senderId === userId1 && m.receiverId === userId2) ||
-             (m.senderId === userId2 && m.receiverId === userId1)
-      ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      
-      resolve([...conversation]);
-    }, 500);
-  });
+// Get all messages for a user
+export const getMessages = (userId: string) => {
+  const storedMessages = localStorage.getItem('tradehub-messages');
+  const messages = storedMessages ? JSON.parse(storedMessages) : [];
+  
+  // Return messages where the user is either the sender or receiver
+  return messages.filter((message: Message) => 
+    message.senderId === userId || message.receiverId === userId
+  );
 };
 
-// Send a message
-export const sendMessage = (message: Omit<Message, 'id' | 'createdAt' | 'read'>): Promise<Message> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newMessage: Message = {
-        ...message,
-        id: `m${mockMessages.length + 1}`,
-        createdAt: new Date().toISOString(),
-        read: false
-      };
-      
-      mockMessages = [...mockMessages, newMessage];
-      resolve({...newMessage});
-    }, 500);
-  });
+// Get conversation between two users
+export const getConversation = (userId1: string, userId2: string) => {
+  const storedMessages = localStorage.getItem('tradehub-messages');
+  const messages = storedMessages ? JSON.parse(storedMessages) : [];
+  
+  // Filter messages that are between these two users
+  return messages.filter((message: Message) => 
+    (message.senderId === userId1 && message.receiverId === userId2) ||
+    (message.senderId === userId2 && message.receiverId === userId1)
+  );
+};
+
+// Send a new message
+export const sendMessage = (messageData: Omit<Message, 'id' | 'createdAt' | 'read'>) => {
+  const newMessage: Message = {
+    ...messageData,
+    id: uuidv4(),
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  
+  // Get existing messages
+  const storedMessages = localStorage.getItem('tradehub-messages');
+  const messages = storedMessages ? JSON.parse(storedMessages) : [];
+  
+  // Add new message
+  messages.push(newMessage);
+  
+  // Save back to localStorage
+  localStorage.setItem('tradehub-messages', JSON.stringify(messages));
+  
+  return newMessage;
 };
 
 // Mark messages as read
-export const markAsRead = (senderId: string, receiverId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      mockMessages = mockMessages.map(m => {
-        if (m.senderId === senderId && m.receiverId === receiverId && !m.read) {
-          return { ...m, read: true };
-        }
-        return m;
-      });
-      
-      resolve(true);
-    }, 500);
+export const markAsRead = (messageIds: string[]) => {
+  const storedMessages = localStorage.getItem('tradehub-messages');
+  let messages = storedMessages ? JSON.parse(storedMessages) : [];
+  
+  // Update read status for specified messages
+  messages = messages.map((message: Message) => {
+    if (messageIds.includes(message.id)) {
+      return { ...message, read: true };
+    }
+    return message;
   });
-};
-
-// Get unread message count for a user
-export const getUnreadCount = (userId: string): Promise<number> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const count = mockMessages.filter(m => m.receiverId === userId && !m.read).length;
-      resolve(count);
-    }, 500);
-  });
+  
+  // Save back to localStorage
+  localStorage.setItem('tradehub-messages', JSON.stringify(messages));
+  
+  return messages.filter((message: Message) => messageIds.includes(message.id));
 };
