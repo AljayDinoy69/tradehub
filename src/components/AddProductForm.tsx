@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/button';
 import { createProduct } from '../services/productService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const AddProductForm: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   
   const [formData, setFormData] = useState({
     title: '',
@@ -24,6 +28,18 @@ const AddProductForm: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      // Create a preview URL for the selected image
+      const fileUrl = URL.createObjectURL(file);
+      setPreviewUrl(fileUrl);
+      setFormData(prev => ({ ...prev, image: fileUrl }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +62,7 @@ const AddProductForm: React.FC = () => {
       }
       
       // Create the product
-      await createProduct({
+      const newProduct = await createProduct({
         title: formData.title,
         description: formData.description,
         price,
@@ -55,6 +71,16 @@ const AddProductForm: React.FC = () => {
         sellerId: user.id,
         sellerName: user.name,
         sellerAvatar: user.avatar
+      });
+
+      // Save product to localStorage
+      const savedProducts = JSON.parse(localStorage.getItem(`tradehub-user-products-${user.id}`) || '[]');
+      savedProducts.push(newProduct);
+      localStorage.setItem(`tradehub-user-products-${user.id}`, JSON.stringify(savedProducts));
+      
+      toast({
+        title: "Product created",
+        description: "Your product has been added successfully.",
       });
       
       // Redirect to products page
@@ -150,21 +176,59 @@ const AddProductForm: React.FC = () => {
       
       <div className="space-y-2">
         <label htmlFor="image" className="block text-sm font-medium text-gray-700">
-          Image URL
+          Product Image
         </label>
-        <input 
-          type="url"
-          id="image"
-          name="image"
-          value={formData.image}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-tradehub-primary focus:border-transparent"
-          placeholder="https://example.com/image.jpg"
-          required
-        />
-        <p className="text-xs text-gray-500">
-          Paste a direct link to an image. For demo purposes, you can use images from Unsplash.com.
-        </p>
+        <div className="flex flex-col items-center p-4 border-2 border-dashed rounded-md border-gray-300 bg-gray-50">
+          <input
+            type="file"
+            id="image"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          
+          {previewUrl ? (
+            <div className="mb-3 w-full max-w-xs">
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="object-cover w-full h-40 rounded-md"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="mt-2" 
+                onClick={() => {
+                  setSelectedFile(null);
+                  setPreviewUrl('');
+                  setFormData(prev => ({ ...prev, image: '' }));
+                }}
+              >
+                Remove Image
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center w-full text-center">
+              <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <p className="mb-2 text-sm text-gray-500">
+                <span className="font-semibold">Click to upload</span> or drag and drop
+              </p>
+              <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+            </div>
+          )}
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2"
+            onClick={() => document.getElementById('image')?.click()}
+          >
+            {previewUrl ? 'Change Image' : 'Select Image'}
+          </Button>
+        </div>
       </div>
       
       <div className="pt-3">

@@ -13,8 +13,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration
-const mockUsers = [
+// Initial mock user data
+const initialMockUsers = [
   {
     id: '1',
     name: 'Admin User',
@@ -35,9 +35,20 @@ const mockUsers = [
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [mockUsers, setMockUsers] = useState<Array<typeof initialMockUsers[0]>>([]);
   
-  // Check localStorage on mount
+  // Load mock users and current user from localStorage on mount
   useEffect(() => {
+    // Load saved users
+    const savedUsers = localStorage.getItem('tradehub-users');
+    if (savedUsers) {
+      setMockUsers(JSON.parse(savedUsers));
+    } else {
+      setMockUsers(initialMockUsers);
+      localStorage.setItem('tradehub-users', JSON.stringify(initialMockUsers));
+    }
+    
+    // Load current user
     const storedUser = localStorage.getItem('tradehub-user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -48,10 +59,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = user?.role === 'admin';
 
   const login = async (email: string, password: string) => {
+    // Get the latest users from localStorage
+    const storedUsers = localStorage.getItem('tradehub-users');
+    const currentUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    
     // Simulate API request
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-        const foundUser = mockUsers.find(
+        const foundUser = currentUsers.find(
           (u) => u.email === email && u.password === password
         );
         
@@ -68,26 +83,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (name: string, email: string, password: string) => {
+    // Get the latest users from localStorage
+    const storedUsers = localStorage.getItem('tradehub-users');
+    const currentUsers = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    
     // Simulate API request
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-        const existingUser = mockUsers.find((u) => u.email === email);
+        const existingUser = currentUsers.find((u) => u.email === email);
         
         if (existingUser) {
           reject(new Error('Email already in use'));
         } else {
           const newUser = {
-            id: `${mockUsers.length + 1}`,
+            id: `${currentUsers.length + 1}`,
             name,
             email,
+            password, // Store password for mock auth
             avatar: `https://ui-avatars.com/api/?name=${name.replace(' ', '+')}&background=0EA5E9&color=fff`,
             role: 'user' as UserRole
           };
           
-          // In a real app, we would save to backend
-          // For demo, we'll just set the current user
-          setUser(newUser);
-          localStorage.setItem('tradehub-user', JSON.stringify(newUser));
+          // Add to mock users array
+          const updatedUsers = [...currentUsers, newUser];
+          setMockUsers(updatedUsers);
+          
+          // Save to localStorage
+          localStorage.setItem('tradehub-users', JSON.stringify(updatedUsers));
+          
+          // Log in the user (without password in the state)
+          const { password: _, ...userWithoutPassword } = newUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem('tradehub-user', JSON.stringify(userWithoutPassword));
           resolve();
         }
       }, 500);
