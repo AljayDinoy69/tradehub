@@ -142,7 +142,7 @@ const ViewProduct: React.FC = () => {
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!user || !product) return;
+    if (!user || !product || !sellerUser) return;
     
     try {
       const newMessage = await sendMessage({
@@ -197,6 +197,7 @@ const ViewProduct: React.FC = () => {
 
   const isOwner = user?.id === product.sellerId;
   const canEdit = isOwner || isAdmin;
+  const canContactSeller = isAuthenticated && !isOwner;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -227,10 +228,16 @@ const ViewProduct: React.FC = () => {
                   <Heart className="w-4 h-4 mr-2" />
                   Like ({product.likes})
                 </Button>
-                <Button variant="ghost" className="flex-1" onClick={() => setShowMessenger(!showMessenger)}>
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Contact Seller
-                </Button>
+                {canContactSeller && (
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1" 
+                    onClick={() => setShowMessenger(!showMessenger)}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    {showMessenger ? 'Hide Chat' : 'Contact Seller'}
+                  </Button>
+                )}
                 <Button variant="ghost" className="flex-1">
                   <Share className="w-4 h-4 mr-2" />
                   Share
@@ -302,7 +309,7 @@ const ViewProduct: React.FC = () => {
               </div>
               
               {/* Mini Messenger */}
-              {showMessenger && isAuthenticated && user?.id !== product.sellerId && sellerUser && (
+              {showMessenger && isAuthenticated && !isOwner && sellerUser && (
                 <div className="mt-6">
                   <h3 className="mb-4 text-lg font-semibold">Contact Seller</h3>
                   <Messenger 

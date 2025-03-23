@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Comment } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from "@/hooks/use-toast";
 
 interface CommentSectionProps {
   comments: Comment[];
@@ -16,6 +18,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   onAddComment 
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,8 +32,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     try {
       await onAddComment(productId, newComment);
       setNewComment('');
+      toast({
+        title: "Comment added",
+        description: "Your comment has been posted successfully."
+      });
     } catch (error) {
       console.error('Failed to add comment:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add comment. Please try again."
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +61,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               className="w-9 h-9 rounded-full shrink-0"
             />
             <div className="flex-1">
-              <textarea 
+              <Textarea 
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-tradehub-primary focus:border-transparent"

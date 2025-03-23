@@ -3,7 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Message } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface MessengerProps {
   otherUser: User;
@@ -17,6 +19,7 @@ const Messenger: React.FC<MessengerProps> = ({
   onSendMessage 
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,8 +42,17 @@ const Messenger: React.FC<MessengerProps> = ({
     try {
       await onSendMessage(messageText);
       setMessageText('');
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
     } catch (error) {
       console.error('Failed to send message:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send message. Please try again."
+      });
     } finally {
       setIsSending(false);
     }
@@ -101,7 +113,7 @@ const Messenger: React.FC<MessengerProps> = ({
       </div>
       
       <form onSubmit={handleSubmit} className="flex items-center p-3 border-t bg-gray-50">
-        <input 
+        <Input 
           type="text"
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
