@@ -1,5 +1,5 @@
 
-import { Message } from '../types';
+import { Message, User } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Get all messages for a user
@@ -65,3 +65,37 @@ export const markAsRead = (messageIds: string[]) => {
   
   return messages.filter((message: Message) => messageIds.includes(message.id));
 };
+
+// Get all users with whom the current user has conversations
+export const getConversationUsers = (currentUserId: string): string[] => {
+  const userMessages = getMessages(currentUserId);
+  
+  // Get unique user IDs the current user has interacted with
+  const userIds = new Set<string>();
+  
+  userMessages.forEach((message: Message) => {
+    if (message.senderId === currentUserId) {
+      userIds.add(message.receiverId);
+    } else {
+      userIds.add(message.senderId);
+    }
+  });
+  
+  return Array.from(userIds);
+};
+
+// Get unread message count from a specific user
+export const getUnreadMessageCount = (currentUserId: string, fromUserId: string): number => {
+  const messages = getConversation(currentUserId, fromUserId);
+  
+  return messages.filter((message: Message) => 
+    message.receiverId === currentUserId && !message.read
+  ).length;
+};
+
+// Get all users in the system (for starting new conversations)
+export const getAllUsers = (): User[] => {
+  const storedUsers = localStorage.getItem('tradehub-users');
+  return storedUsers ? JSON.parse(storedUsers) : [];
+};
+

@@ -1,55 +1,80 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getMessages, getConversation, sendMessage, markAsRead } from '../services/messageService';
+import { getMessages, getConversation, sendMessage, markAsRead, getAllUsers } from '../services/messageService';
 import { Message, User } from '../types';
 import Navbar from '../components/Navbar';
+import NewConversation from '../components/NewConversation';
+import Messenger from '../components/Messenger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Send, X, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MessagesPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<{ [key: string]: { user: User, messages: Message[] } }>({});
+  const [conversations, setConversations] = useState<{ [key: string]: { user: User, messages: Message[], unreadCount: number } }>({});
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
+  // Function to load messages and conversations
+  const loadMessages = () => {
     if (!user) return;
+    
+    setLoading(true);
     
     // Load all user messages
     const userMessages = getMessages(user.id);
     setMessages(userMessages);
     
+    // Get all users for conversations
+    const allUsers = getAllUsers();
+    
     // Group messages by conversation
-    const convMap: { [key: string]: { user: User, messages: Message[] } } = {};
+    const convMap: { [key: string]: { user: User, messages: Message[], unreadCount: number } } = {};
     
     userMessages.forEach((msg) => {
       const otherUserId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
       
       if (!convMap[otherUserId]) {
-        // Create placeholder user info (in a real app, you'd fetch user details)
-        const otherUser: User = {
-          id: otherUserId,
-          name: `User ${otherUserId.substring(0, 4)}`,
-          email: `user${otherUserId.substring(0, 4)}@example.com`,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherUserId}`,
-          role: 'user'
-        };
+        // Find the other user from all users
+        const otherUser = allUsers.find(u => u.id === otherUserId);
         
-        convMap[otherUserId] = {
-          user: otherUser,
-          messages: []
-        };
+        if (otherUser) {
+          convMap[otherUserId] = {
+            user: otherUser,
+            messages: [],
+            unreadCount: 0
+          };
+        } else {
+          // Create placeholder user info if not found
+          convMap[otherUserId] = {
+            user: {
+              id: otherUserId,
+              name: `User ${otherUserId.substring(0, 4)}`,
+              email: `user${otherUserId.substring(0, 4)}@example.com`,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherUserId}`,
+              role: 'user'
+            },
+            messages: [],
+            unreadCount: 0
+          };
+        }
       }
       
       convMap[otherUserId].messages.push(msg);
+      
+      // Count unread messages
+      if (msg.receiverId === user.id && !msg.read) {
+        convMap[otherUserId].unreadCount += 1;
+      }
     });
     
     // Sort messages by date in each conversation
@@ -60,9 +85,14 @@ const MessagesPage: React.FC = () => {
     });
     
     setConversations(convMap);
+    setLoading(false);
+  };
+  
+  useEffect(() => {
+    loadMessages();
   }, [user]);
   
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!user || !activeConversation || !newMessage.trim()) return;
     
     try {
@@ -98,6 +128,52 @@ const MessagesPage: React.FC = () => {
     }
   };
   
+  const handleOpenConversation = (userId: string) => {
+    if (!user) return;
+    
+    setActiveConversation(userId);
+    
+    // Mark messages as read when opening conversation
+    if (conversations[userId]?.unreadCount > 0) {
+      const unreadMessages = conversations[userId].messages
+        .filter(msg => msg.receiverId === user.id && !msg.read)
+        .map(msg => msg.id);
+      
+      if (unreadMessages.length > 0) {
+        markAsRead(unreadMessages);
+        
+        // Update local state
+        setConversations(prev => ({
+          ...prev,
+          [userId]: {
+            ...prev[userId],
+            unreadCount: 0,
+            messages: prev[userId].messages.map(msg => 
+              msg.receiverId === user.id ? { ...msg, read: true } : msg
+            )
+          }
+        }));
+      }
+    }
+  };
+  
+  const handleNewConversation = (selectedUser: User) => {
+    // Add the user to conversations if not already there
+    if (!conversations[selectedUser.id]) {
+      setConversations(prev => ({
+        ...prev,
+        [selectedUser.id]: {
+          user: selectedUser,
+          messages: [],
+          unreadCount: 0
+        }
+      }));
+    }
+    
+    // Set as active conversation
+    setActiveConversation(selectedUser.id);
+  };
+  
   if (!user) {
     return <div>Please login to view your messages</div>;
   }
@@ -109,37 +185,75 @@ const MessagesPage: React.FC = () => {
       <div className="container grid h-[calc(100vh-80px)] grid-cols-1 gap-4 p-4 mx-auto md:grid-cols-4 max-w-6xl">
         {/* Conversation List */}
         <Card className="md:col-span-1 overflow-hidden">
-          <CardHeader className="p-4">
+          <CardHeader className="p-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Conversations</CardTitle>
+            <NewConversation onSelectUser={handleNewConversation} />
           </CardHeader>
+          
           <ScrollArea className="h-[calc(100vh-180px)]">
             <CardContent className="p-2">
-              {Object.keys(conversations).length > 0 ? (
-                Object.entries(conversations).map(([userId, conv]) => (
-                  <div
-                    key={userId}
-                    className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${
-                      activeConversation === userId 
-                        ? 'bg-blue-100' 
-                        : 'hover:bg-gray-100'
-                    }`}
-                    onClick={() => setActiveConversation(userId)}
-                  >
-                    <Avatar>
-                      <AvatarImage src={conv.user.avatar} />
-                      <AvatarFallback>{conv.user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{conv.user.name}</p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].content : 'No messages yet'}
-                      </p>
+              {loading ? (
+                <div className="py-8 text-center">
+                  <p className="text-gray-500">Loading conversations...</p>
+                </div>
+              ) : Object.keys(conversations).length > 0 ? (
+                Object.entries(conversations)
+                  .sort(([_, a], [__, b]) => {
+                    const aLastMsg = a.messages[a.messages.length - 1];
+                    const bLastMsg = b.messages[b.messages.length - 1];
+                    
+                    // Sort by unread count first, then by latest message
+                    if (a.unreadCount !== b.unreadCount) {
+                      return b.unreadCount - a.unreadCount;
+                    }
+                    
+                    if (!aLastMsg && !bLastMsg) return 0;
+                    if (!aLastMsg) return 1;
+                    if (!bLastMsg) return -1;
+                    
+                    return new Date(bLastMsg.createdAt).getTime() - 
+                           new Date(aLastMsg.createdAt).getTime();
+                  })
+                  .map(([userId, conv]) => (
+                    <div
+                      key={userId}
+                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${
+                        activeConversation === userId 
+                          ? 'bg-blue-100' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => handleOpenConversation(userId)}
+                    >
+                      <Avatar>
+                        <AvatarImage src={conv.user.avatar} />
+                        <AvatarFallback>{conv.user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <p className="font-medium truncate">{conv.user.name}</p>
+                          {conv.unreadCount > 0 && (
+                            <Badge variant="destructive" className="ml-2">
+                              {conv.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 truncate">
+                          {conv.messages.length > 0 
+                            ? conv.messages[conv.messages.length - 1].content 
+                            : 'Start a conversation'
+                          }
+                        </p>
+                        <p className="text-xs text-gray-400 capitalize">{conv.user.role}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))
               ) : (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-12 text-center flex flex-col items-center text-gray-500">
+                  <MessageCircle className="w-12 h-12 mb-2 text-gray-300" />
                   <p>No conversations yet</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Start a new conversation using the button above
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -148,67 +262,22 @@ const MessagesPage: React.FC = () => {
         
         {/* Message Area */}
         <Card className="md:col-span-3 overflow-hidden">
-          {activeConversation ? (
-            <>
-              <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={conversations[activeConversation].user.avatar} />
-                    <AvatarFallback>
-                      {conversations[activeConversation].user.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="text-xl">{conversations[activeConversation].user.name}</CardTitle>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setActiveConversation(null)}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </CardHeader>
-              
-              <div className="flex flex-col h-[calc(100vh-240px)]">
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {conversations[activeConversation].messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                            msg.senderId === user.id
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-200 text-gray-800'
-                          }`}
-                        >
-                          <p>{msg.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            msg.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {new Date(msg.createdAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-                
-                <div className="flex gap-2 p-4 border-t">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type your message..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send
-                  </Button>
-                </div>
-              </div>
-            </>
+          {activeConversation && conversations[activeConversation] ? (
+            <Messenger
+              otherUser={conversations[activeConversation].user}
+              messages={conversations[activeConversation].messages}
+              onSendMessage={async (content) => {
+                setNewMessage(content);
+                await handleSendMessage();
+              }}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)]">
+              <MessageCircle className="w-16 h-16 mb-4 text-gray-300" />
               <p className="text-lg text-gray-500">Select a conversation to start messaging</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Or start a new conversation with the "New Message" button
+              </p>
             </div>
           )}
         </Card>

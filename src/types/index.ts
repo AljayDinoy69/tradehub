@@ -54,3 +54,42 @@ export interface Notification {
   createdAt: string;
   productId?: string;
 }
+
+// Sample users for the system (will be generated at initialization)
+export const SAMPLE_USERS: User[] = [
+  {
+    id: "admin1",
+    name: "Admin User",
+    email: "admin@tradehub.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
+    role: "admin"
+  },
+  {
+    id: "user1",
+    name: "Regular User",
+    email: "user@tradehub.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user",
+    role: "user"
+  },
+  {
+    id: "user2",
+    name: "Jane Smith",
+    email: "jane@example.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
+    role: "user"
+  },
+  {
+    id: "user3",
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
+    role: "user"
+  },
+  {
+    id: "user4",
+    name: "Alice Johnson",
+    email: "alice@example.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alice",
+    role: "user"
+  }
+];
