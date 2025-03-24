@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getMessages, getConversation, sendMessage, markAsRead, getAllUsers } from '../services/messageService';
@@ -12,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, X, MessageCircle } from 'lucide-react';
+import { Send, X, MessageCircle, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MessagesPage: React.FC = () => {
@@ -22,6 +21,7 @@ const MessagesPage: React.FC = () => {
   const [conversations, setConversations] = useState<{ [key: string]: { user: User, messages: Message[], unreadCount: number } }>({});
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
   // Function to load messages and conversations
@@ -173,6 +173,16 @@ const MessagesPage: React.FC = () => {
     // Set as active conversation
     setActiveConversation(selectedUser.id);
   };
+
+  // Filter conversations based on search term
+  const filteredConversations = Object.entries(conversations).filter(([_, conv]) => {
+    if (!searchTerm) return true;
+    
+    return (
+      conv.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
   
   if (!user) {
     return <div>Please login to view your messages</div>;
@@ -185,19 +195,31 @@ const MessagesPage: React.FC = () => {
       <div className="container grid h-[calc(100vh-80px)] grid-cols-1 gap-4 p-4 mx-auto md:grid-cols-4 max-w-6xl">
         {/* Conversation List */}
         <Card className="md:col-span-1 overflow-hidden">
-          <CardHeader className="p-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-xl">Conversations</CardTitle>
-            <NewConversation onSelectUser={handleNewConversation} />
+          <CardHeader className="p-4 space-y-3">
+            <CardTitle className="text-xl">Messages</CardTitle>
+            
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  placeholder="Search conversations..." 
+                  className="pl-9" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <NewConversation onSelectUser={handleNewConversation} />
+            </div>
           </CardHeader>
           
-          <ScrollArea className="h-[calc(100vh-180px)]">
+          <ScrollArea className="h-[calc(100vh-210px)]">
             <CardContent className="p-2">
               {loading ? (
                 <div className="py-8 text-center">
                   <p className="text-gray-500">Loading conversations...</p>
                 </div>
-              ) : Object.keys(conversations).length > 0 ? (
-                Object.entries(conversations)
+              ) : filteredConversations.length > 0 ? (
+                filteredConversations
                   .sort(([_, a], [__, b]) => {
                     const aLastMsg = a.messages[a.messages.length - 1];
                     const bLastMsg = b.messages[b.messages.length - 1];
@@ -217,14 +239,14 @@ const MessagesPage: React.FC = () => {
                   .map(([userId, conv]) => (
                     <div
                       key={userId}
-                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-colors mb-1 ${
                         activeConversation === userId 
                           ? 'bg-blue-100' 
                           : 'hover:bg-gray-100'
                       }`}
                       onClick={() => handleOpenConversation(userId)}
                     >
-                      <Avatar>
+                      <Avatar className="border border-gray-200">
                         <AvatarImage src={conv.user.avatar} />
                         <AvatarFallback>{conv.user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
@@ -250,9 +272,9 @@ const MessagesPage: React.FC = () => {
               ) : (
                 <div className="py-12 text-center flex flex-col items-center text-gray-500">
                   <MessageCircle className="w-12 h-12 mb-2 text-gray-300" />
-                  <p>No conversations yet</p>
+                  <p>No conversations found</p>
                   <p className="text-sm text-gray-400 mt-1">
-                    Start a new conversation using the button above
+                    {searchTerm ? 'Try a different search term' : 'Start a new conversation using the button above'}
                   </p>
                 </div>
               )}

@@ -49,9 +49,8 @@ const NewConversation: React.FC<NewConversationProps> = ({ onSelectUser }) => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="gap-2">
+        <Button size="icon" className="flex-shrink-0" aria-label="New Message">
           <MessageSquarePlus className="w-4 h-4" />
-          New Message
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[400px] sm:w-[540px]">

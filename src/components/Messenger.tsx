@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -77,11 +78,10 @@ const Messenger: React.FC<MessengerProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center p-3 border-b">
-        <img 
-          src={otherUser.avatar} 
-          alt={otherUser.name} 
-          className="w-8 h-8 mr-3 rounded-full"
-        />
+        <Avatar className="mr-3 border border-gray-100">
+          <AvatarImage src={otherUser.avatar} alt={otherUser.name} />
+          <AvatarFallback>{otherUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
         <div>
           <h3 className="font-medium">{otherUser.name}</h3>
           <p className="text-xs text-gray-500 capitalize">{otherUser.role}</p>
@@ -116,11 +116,10 @@ const Messenger: React.FC<MessengerProps> = ({
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
                       {!isOwn && (
-                        <img 
-                          src={otherUser.avatar} 
-                          alt={otherUser.name} 
-                          className="w-8 h-8 mr-2 rounded-full self-end"
-                        />
+                        <Avatar className="mr-2 self-end h-8 w-8">
+                          <AvatarImage src={otherUser.avatar} alt={otherUser.name} />
+                          <AvatarFallback>{otherUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
                       )}
                       <div 
                         className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
@@ -137,11 +136,10 @@ const Messenger: React.FC<MessengerProps> = ({
                         </span>
                       </div>
                       {isOwn && (
-                        <img 
-                          src={user.avatar} 
-                          alt={user.name} 
-                          className="w-8 h-8 ml-2 rounded-full self-end"
-                        />
+                        <Avatar className="ml-2 self-end h-8 w-8">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
                       )}
                     </div>
                   );
@@ -170,7 +168,7 @@ const Messenger: React.FC<MessengerProps> = ({
           />
           <Button 
             type="submit" 
-            className="self-end h-[50px]"
+            className="self-end h-[50px] px-4"
             disabled={!messageText.trim() || isSending}
           >
             <Send className="w-4 h-4" />
