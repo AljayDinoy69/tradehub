@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +17,19 @@ const Index = () => {
     const fetchProducts = async () => {
       try {
         const products = await getAllProducts();
-        // Get 3 featured products (normally you'd have criteria for featuring products)
-        setFeaturedProducts(products.slice(0, 3));
+        // Get only products created by admin users (role = 'admin')
+        const adminProducts = products.filter(product => {
+          // Get all users from localStorage to find admin users
+          const storedUsers = localStorage.getItem('tradehub-users');
+          const users = storedUsers ? JSON.parse(storedUsers) : [];
+          // Find the seller in the users array
+          const seller = users.find((user: any) => user.id === product.sellerId);
+          // Check if seller is an admin and product is approved
+          return seller?.role === 'admin' && product.status === 'approved';
+        });
+        
+        // Take up to 3 admin products for the featured section
+        setFeaturedProducts(adminProducts.slice(0, 3));
       } catch (error) {
         console.error('Failed to fetch products:', error);
       } finally {
@@ -88,6 +98,10 @@ const Index = () => {
               {[1, 2, 3].map((n) => (
                 <div key={n} className="h-64 rounded-lg bg-gray-200 animate-pulse"></div>
               ))}
+            </div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-lg shadow-sm">
+              <p className="text-gray-600">No featured products available at this time.</p>
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
