@@ -1,5 +1,6 @@
 
 export type UserRole = 'user' | 'admin';
+export type ProductStatus = 'pending' | 'approved' | 'rejected';
 
 export interface User {
   id: string;
@@ -22,6 +23,7 @@ export interface Product {
   createdAt: string;
   likes: number;
   comments: Comment[];
+  status: ProductStatus;
 }
 
 export interface Comment {
@@ -40,4 +42,15 @@ export interface Message {
   content: string;
   createdAt: string;
   read: boolean;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'product_approval' | 'product_approved' | 'product_rejected' | 'general';
+  read: boolean;
+  createdAt: string;
+  productId?: string;
 }

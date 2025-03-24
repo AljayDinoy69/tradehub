@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { createProduct } from '../services/productService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AddProductForm: React.FC = () => {
@@ -79,12 +79,12 @@ const AddProductForm: React.FC = () => {
       localStorage.setItem(`tradehub-user-products-${user.id}`, JSON.stringify(savedProducts));
       
       toast({
-        title: "Product created",
-        description: "Your product has been added successfully.",
+        title: "Product submitted for review",
+        description: "Your product has been submitted and is pending admin approval.",
       });
       
       // Redirect to products page
-      navigate('/products');
+      navigate('/dashboard');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create product');
@@ -95,6 +95,13 @@ const AddProductForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="w-4 h-4 text-blue-500" />
+        <AlertDescription className="text-blue-700">
+          All new products require admin approval before being listed in the marketplace.
+        </AlertDescription>
+      </Alert>
+      
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="w-4 h-4" />
@@ -237,7 +244,7 @@ const AddProductForm: React.FC = () => {
           className="w-full md:w-auto" 
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Creating...' : 'Create Product'}
+          {isSubmitting ? 'Submitting...' : 'Submit Product for Review'}
         </Button>
       </div>
     </form>
