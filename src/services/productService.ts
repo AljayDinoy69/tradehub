@@ -1,4 +1,3 @@
-
 import { Product, Comment, ProductStatus } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotification } from './notificationService';
@@ -18,13 +17,23 @@ export const addProduct = (product: any) => {
 
 // Function to create a new product with proper ID and timestamps
 export const createProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'likes' | 'comments' | 'status'>) => {
+  // Get all users to determine if the creator is an admin
+  const storedUsers = localStorage.getItem('tradehub-users');
+  const users = storedUsers ? JSON.parse(storedUsers) : [];
+  
+  // Find the seller in the users array
+  const seller = users.find((user: any) => user.id === productData.sellerId);
+  
+  // Set product status based on user role - approved for admin, pending for regular users
+  const productStatus: ProductStatus = seller?.role === 'admin' ? 'approved' : 'pending';
+
   const newProduct: Product = {
     ...productData,
     id: uuidv4(),
     createdAt: new Date().toISOString(),
     likes: 0,
     comments: [],
-    status: 'pending' // All new products are pending by default
+    status: productStatus // Automatically approve if admin created
   };
 
   // Get existing products
@@ -37,21 +46,22 @@ export const createProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'l
   // Save back to localStorage
   localStorage.setItem('tradehub-products', JSON.stringify(products));
   
-  // Notify all admins about the new product
-  const storedUsers = localStorage.getItem('tradehub-users');
-  if (storedUsers) {
-    const users = JSON.parse(storedUsers);
-    const admins = users.filter((user: any) => user.role === 'admin');
-    
-    admins.forEach((admin: any) => {
-      createNotification({
-        userId: admin.id,
-        title: 'New Product Pending Approval',
-        message: `${productData.sellerName} has added a new product "${productData.title}" that requires your approval.`,
-        type: 'product_approval',
-        productId: newProduct.id
+  // Only create notifications if the product is pending (not created by admin)
+  if (productStatus === 'pending') {
+    // Notify all admins about the new product
+    if (storedUsers) {
+      const admins = users.filter((user: any) => user.role === 'admin');
+      
+      admins.forEach((admin: any) => {
+        createNotification({
+          userId: admin.id,
+          title: 'New Product Pending Approval',
+          message: `${productData.sellerName} has added a new product "${productData.title}" that requires your approval.`,
+          type: 'product_approval',
+          productId: newProduct.id
+        });
       });
-    });
+    }
   }
   
   return newProduct;

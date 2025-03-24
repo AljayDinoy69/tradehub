@@ -78,10 +78,18 @@ const AddProductForm: React.FC = () => {
       savedProducts.push(newProduct);
       localStorage.setItem(`tradehub-user-products-${user.id}`, JSON.stringify(savedProducts));
       
-      toast({
-        title: "Product submitted for review",
-        description: "Your product has been submitted and is pending admin approval.",
-      });
+      // Show different toast message based on user role
+      if (user.role === 'admin') {
+        toast({
+          title: "Product created",
+          description: "Your product has been created and is now live in the marketplace.",
+        });
+      } else {
+        toast({
+          title: "Product submitted for review",
+          description: "Your product has been submitted and is pending admin approval.",
+        });
+      }
       
       // Redirect to products page
       navigate('/dashboard');
@@ -95,17 +103,13 @@ const AddProductForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <Alert className="bg-blue-50 border-blue-200">
-        <Info className="w-4 h-4 text-blue-500" />
-        <AlertDescription className="text-blue-700">
-          All new products require admin approval before being listed in the marketplace.
-        </AlertDescription>
-      </Alert>
-      
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="w-4 h-4" />
-          <AlertDescription>{error}</AlertDescription>
+      {/* Only show the approval notice to non-admin users */}
+      {user?.role !== 'admin' && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="w-4 h-4 text-blue-500" />
+          <AlertDescription className="text-blue-700">
+            All new products require admin approval before being listed in the marketplace.
+          </AlertDescription>
         </Alert>
       )}
       
